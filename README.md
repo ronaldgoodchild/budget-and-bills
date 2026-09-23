@@ -6,6 +6,9 @@ A free, **local-first budgeting app** for your checking account. Import your ban
 
 ## Screenshots
 
+![Demo](docs/screenshots/demo.gif)
+*A tour of the dashboard, calendar, bills, budgets and debt payoff (fictional data)*
+
 ![Dashboard: safe-to-spend, 60-day forecast, bill alerts (fictional data)](docs/screenshots/dashboard.png)
 *Dashboard: safe-to-spend, 60-day forecast, bill alerts (fictional data)*
 
