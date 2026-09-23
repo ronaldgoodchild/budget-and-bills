@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget & Bills</title>
+<link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+<meta name="theme-color" content="#2563eb">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+<link rel="icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div id="app">
+
+  <div class="dev-header">
+    <a href="https://www.regteches.com" target="_blank" rel="noopener" class="dev-header-link">
+      <img src="{{ url_for('static', filename='regteches-logo.svg') }}" alt="REGTeches logo" class="dev-header-logo">
+      <span class="dev-header-text">
+        <span class="dev-header-company">REGTeches</span>
+        <span class="dev-header-sub">Developed by Ronald Goodchild</span>
+      </span>
+    </a>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">💰 Budget &amp; Bills</div>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+      <button class="tab-btn" data-tab="reports">Reports</button>
+      <button class="tab-btn" data-tab="billtrends">Bill Trends</button>
+      <button class="tab-btn" data-tab="calendar">Calendar</button>
+      <button class="tab-btn" data-tab="bills">Bills</button>
+      <button class="tab-btn" data-tab="transactions">Transactions</button>
+      <button class="tab-btn" data-tab="budgets">Budgets</button>
+      <button class="tab-btn" data-tab="whatif">What-If</button>
+      <button class="tab-btn" data-tab="debts">Debts</button>
+      <div class="nav-group" id="settings-nav-group">
+        <button class="tab-btn nav-group-trigger" id="settings-trigger" type="button">Settings ▾</button>
+        <div class="nav-dropdown" id="settings-dropdown-menu">
+          <button class="tab-btn dropdown-item" data-tab="import">Import CSV</button>
+          <button class="tab-btn dropdown-item" data-tab="notifications">Notifications</button>
+          <button class="tab-btn dropdown-item" data-tab="settings">General Settings</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- DASHBOARD -->
+    <section id="tab-dashboard" class="tab-panel active">
+      <div class="grid grid-4">
+        <div class="card stat">
+          <div class="stat-label">Current Balance</div>
+          <div class="stat-value" id="stat-balance">--</div>
+          <div class="stat-sub" id="stat-balance-date"></div>
+        </div>
+        <div class="card stat">
+          <div class="stat-label">Lowest Projected (30d)</div>
+          <div class="stat-value" id="stat-lowest">--</div>
+          <div class="stat-sub" id="stat-lowest-date"></div>
+        </div>
+        <div class="card stat">
+          <div class="stat-label">Est. Monthly Bills vs Income</div>
+          <div class="stat-value" id="stat-net">--</div>
+          <div class="stat-sub" id="stat-net-sub"></div>
+        </div>
+        <div class="card stat">
+          <div class="stat-label">Safe to Spend</div>
+          <div class="stat-value" id="stat-safe">--</div>
+          <div class="stat-sub" id="stat-safe-sub"></div>
+        </div>
+      </div>
+
+      <div id="low-balance-warning" class="banner banner-warn hidden"></div>
+      <div id="recurring-banner" class="banner banner-info hidden"></div>
+      <div id="bill-trends-banner" class="banner banner-warn hidden"></div>
+
+      <div class="card">
+        <div class="row-between">
+          <h3>60-Day Balance Forecast</h3>
+        </div>
+        <div id="forecast-chart"></div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Due in the next 7 days</h3>
+          <div id="upcoming-7" class="list"></div>
+        </div>
+        <div class="card">
+          <h3>Spending by Category (last 90 days)</h3>
+          <div id="cat-spending" class="list"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>💸 Money Leaks - Discretionary Spending</h3>
+        <p class="muted">
+          Based on the last 90 days, categorized as essential vs. discretionary
+          (adjust classifications in the Budgets tab). This is where cutting back
+          actually moves the needle, separate from bill due-date timing.
+        </p>
+        <div id="money-leaks-summary" class="grid grid-2" style="margin-bottom:14px;"></div>
+        <div id="money-leaks-list" class="list"></div>
+      </div>
+    </section>
+
+    <!-- REPORTS -->
+    <section id="tab-reports" class="tab-panel">
+      <div class="card">
+        <div class="row-between">
+          <h3>Where Your Money Goes</h3>
+          <select id="reports-period" style="width:auto; margin:0;">
+            <option value="30">Last 30 days</option>
+            <option value="90" selected>Last 90 days</option>
+            <option value="180">Last 180 days</option>
+            <option value="365">Last 365 days</option>
+          </select>
+        </div>
+        <div class="grid grid-3" style="margin-bottom:16px;">
+          <div class="card stat" style="margin:0;">
+            <div class="stat-label">Total Income</div>
+            <div class="stat-value amt-income" id="reports-total-income">--</div>
+          </div>
+          <div class="card stat" style="margin:0;">
+            <div class="stat-label">Total Spent</div>
+            <div class="stat-value amt-expense" id="reports-total-expense">--</div>
+          </div>
+          <div class="card stat" style="margin:0;">
+            <div class="stat-label">Net</div>
+            <div class="stat-value" id="reports-net">--</div>
+          </div>
+        </div>
+        <div class="reports-pie-layout">
+          <div id="reports-pie-chart"></div>
+          <div id="reports-pie-legend" class="list"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Top Merchants</h3>
+          <div id="reports-top-merchants" class="list"></div>
+        </div>
+        <div class="card">
+          <h3>Monthly Spending Trend</h3>
+          <div id="reports-trend-chart"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BILL TRENDS -->
+    <section id="tab-billtrends" class="tab-panel">
+      <div id="billtrends-alert" class="banner banner-warn hidden"></div>
+
+      <div class="card">
+        <div class="row-between">
+          <h3>Bills Trending Up</h3>
+          <select id="billtrends-months" style="width:auto; margin:0;">
+            <option value="3">Last 3 months</option>
+            <option value="6" selected>Last 6 months</option>
+            <option value="12">Last 12 months</option>
+          </select>
+        </div>
+        <p class="muted">
+          Compares each bill's most recent month against its own recent average
+          (not against other bills), so a normal one-time bump doesn't get
+          flagged forever. Weekly/biweekly bills are compared by average
+          per-charge amount, not monthly total, so a 5-Friday month doesn't
+          look like a price increase.
+        </p>
+        <div id="billtrends-rising" class="list"></div>
+      </div>
+
+      <div class="card">
+        <h3>Bill History</h3>
+        <div id="billtrends-charts"></div>
+      </div>
+
+      <div class="card">
+        <h3>Steady Bills (little to no change)</h3>
+        <div id="billtrends-steady" class="list"></div>
+      </div>
+    </section>
+
+    <!-- CALENDAR -->
+    <section id="tab-calendar" class="tab-panel">
+      <div id="overdue-banner" class="card hidden" style="border-color:var(--expense);">
+        <h3 style="color:var(--expense); margin-top:0;">⚠ Overdue - not yet marked paid</h3>
+        <p class="muted">These already passed their due date and won't be obvious on the grid below if you're viewing a different month.</p>
+        <div id="overdue-list" class="list"></div>
+      </div>
+      <div class="card">
+        <div class="cal-header">
+          <button id="cal-prev" class="btn">&larr;</button>
+          <h2 id="cal-title">Month</h2>
+          <button id="cal-next" class="btn">&rarr;</button>
+          <button id="cal-today" class="btn btn-ghost">Today</button>
+        </div>
+        <div class="cal-legend">
+          <span><i class="dot dot-expense"></i> Bill due</span>
+          <span><i class="dot dot-income"></i> Income</span>
+          <span><i class="dot dot-autopay"></i> Autopay</span>
+          <span><i class="dot dot-negative"></i> Balance goes negative</span>
+        </div>
+        <div id="calendar-grid" class="cal-grid"></div>
+      </div>
+    </section>
+
+    <!-- BILLS -->
+    <section id="tab-bills" class="tab-panel">
+      <div class="card">
+        <div class="row-between">
+          <h3>Detected Recurring Charges</h3>
+        </div>
+        <div id="detected-list" class="list"></div>
+      </div>
+
+      <div class="card">
+        <div class="row-between">
+          <h3>Your Bills</h3>
+          <button class="btn btn-primary" id="btn-add-bill">+ Add Bill</button>
+        </div>
+        <div class="table-scroll">
+          <table class="table" id="bills-table">
+            <thead>
+              <tr>
+                <th>Name</th><th>Amount</th><th>Type</th><th>Category</th>
+                <th>Frequency</th><th>Next Due</th><th>Autopay</th><th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRANSACTIONS -->
+    <section id="tab-transactions" class="tab-panel">
+      <div class="card">
+        <div class="row-between">
+          <h3>Transactions</h3>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="txn-search" placeholder="Search description..." style="width:220px; margin:0;">
+            <select id="txn-filter-category" style="margin:0;"></select>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="table" id="txn-table">
+            <thead>
+              <tr><th>Date</th><th>Description</th><th>Amount</th><th>Status</th><th>Category</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- IMPORT -->
+    <section id="tab-import" class="tab-panel">
+      <div class="card">
+        <h3>Import Checking Account CSV</h3>
+        <p class="muted">
+          Every week, export/download your checking account history CSV from your bank and
+          upload it here. Already-imported transactions are automatically skipped &mdash;
+          only new ones are added, so it's safe to re-upload an overlapping export.
+        </p>
+        <input type="file" id="csv-file" accept=".csv">
+        <button class="btn btn-primary" id="btn-import">Import File</button>
+        <div id="import-result" class="banner hidden"></div>
+      </div>
+
+      <div class="card">
+        <div class="row-between">
+          <h3>Auto-Reconcile Bills</h3>
+          <button class="btn" id="btn-reconcile-now">Check Now</button>
+        </div>
+        <p class="muted">
+          Runs automatically after every import: matches new transactions to your
+          tracked bills (by merchant, amount, and date) and marks them paid
+          automatically, so you don't have to click Mark Paid yourself. Each
+          match below can be undone with one click if something matched wrong.
+        </p>
+        <div id="reconcile-result" class="list"></div>
+      </div>
+
+      <div class="card">
+        <h3>Possible Matches Needing Confirmation</h3>
+        <p class="muted">
+          These look like they might be the same recurring charge under a different
+          statement descriptor (e.g. your bank/processor changed how it labels the
+          transaction that month) - not auto-applied since the merchant name doesn't
+          match exactly. Confirm if it's really the same bill, or dismiss if not.
+        </p>
+        <div id="suggestions-list" class="list"></div>
+      </div>
+    </section>
+
+    <!-- BUDGETS -->
+    <section id="tab-budgets" class="tab-panel">
+      <div class="card">
+        <h3>Monthly Category Budgets</h3>
+        <p class="muted">
+          Set a monthly spending limit per category. Progress is measured against your
+          actual posted transactions in the last 30 days.
+        </p>
+        <div class="row-between">
+          <div style="display:flex; gap:8px; flex:1;">
+            <select id="budget-category" style="margin:0;"></select>
+            <input type="number" step="0.01" id="budget-limit" placeholder="Monthly limit ($)" style="margin:0; width:180px;">
+            <button class="btn btn-primary" id="btn-add-budget">Set Limit</button>
+          </div>
+        </div>
+        <div id="budgets-list" class="list" style="margin-top:14px;"></div>
+      </div>
+    </section>
+
+    <!-- WHAT-IF -->
+    <section id="tab-whatif" class="tab-panel">
+      <div class="card">
+        <h3>What-If: Preview Moving a Bill's Due Date</h3>
+        <p class="muted">
+          Nothing here is saved until you decide to actually change a bill (e.g. after
+          calling the company to request a new due date). Pick one or more bills and a
+          hypothetical new due date, then compare the projected cash-flow cushion before
+          and after.
+        </p>
+        <div id="whatif-rows"></div>
+        <button class="btn" id="btn-whatif-add-row" type="button">+ Add another bill</button>
+        <div class="modal-actions" style="justify-content:flex-start; margin-top:14px;">
+          <button class="btn btn-primary" id="btn-whatif-run">Run Simulation</button>
+        </div>
+      </div>
+
+      <div class="card hidden" id="whatif-results-card">
+        <h3>Comparison</h3>
+        <div class="grid grid-2">
+          <div class="card stat" style="margin:0;">
+            <div class="stat-label">Current lowest balance (next 60 days)</div>
+            <div class="stat-value" id="whatif-baseline-lowest">--</div>
+            <div class="stat-sub" id="whatif-baseline-lowest-date"></div>
+          </div>
+          <div class="card stat" style="margin:0;">
+            <div class="stat-label">After the change(s)</div>
+            <div class="stat-value" id="whatif-modified-lowest">--</div>
+            <div class="stat-sub" id="whatif-modified-lowest-date"></div>
+          </div>
+        </div>
+        <div class="cal-legend" style="margin-top:14px;">
+          <span><i class="dot" style="background:#94a3b8"></i> Current schedule</span>
+          <span><i class="dot" style="background:#2563eb"></i> After changes</span>
+        </div>
+        <div id="whatif-chart"></div>
+      </div>
+    </section>
+
+    <!-- DEBTS -->
+    <section id="tab-debts" class="tab-panel">
+      <div class="card">
+        <div class="row-between">
+          <h3>Debt Payoff Tracker</h3>
+          <button class="btn btn-primary" id="btn-add-debt">+ Add Debt</button>
+        </div>
+        <p class="muted">
+          Enter a balance and interest rate for a loan (mortgage, car loan, etc.) to see
+          its payoff timeline and how extra payments would speed that up. This is
+          separate from Bills - Bills track when a payment is due, this tracks progress
+          toward zero.
+        </p>
+        <div id="debts-list" class="list"></div>
+      </div>
+    </section>
+
+    <!-- NOTIFICATIONS -->
+    <section id="tab-notifications" class="tab-panel">
+      <div class="card">
+        <h3>What's Coming Up - Reminders</h3>
+        <p class="muted">
+          Get a digest whenever a bill is due today, due within your lookahead window,
+          overdue, or your projected balance is running low. Runs automatically once a
+          day while the app is open, and/or via a Windows Scheduled Task (see README) so
+          it still works when the app isn't running.
+        </p>
+        <label>Remind me this many days before a bill is due
+          <input type="number" id="notify-days-ahead" min="1" max="30">
+        </label>
+        <label>Warn me if projected balance drops below ($)
+          <input type="number" step="0.01" id="notify-low-balance">
+        </label>
+        <label>Daily check time (24h, only affects the in-app scheduler while running)
+          <input type="text" id="notify-time" placeholder="08:00">
+        </label>
+        <button class="btn btn-primary" id="btn-save-notify-general">Save</button>
+        <button class="btn" id="btn-run-check-now">Check &amp; Send Now</button>
+        <div id="notify-general-saved" class="banner banner-good hidden">Saved.</div>
+        <div id="notify-run-result" class="banner hidden"></div>
+      </div>
+
+      <div class="card">
+        <h3>📱 ntfy (push notification to your phone) - easiest option</h3>
+        <p class="muted">
+          ntfy is a free pub-sub notification service: anyone (or anything, like this app)
+          can <em>publish</em> a message to a "topic", and anyone <em>subscribed</em> to
+          that same topic on their phone instantly gets it as a push notification. There's
+          no account and no sign-up. The topic name works like a password, so <strong>the
+          order below matters</strong> - if you test before subscribing, the message sends
+          successfully but nobody's listening, so nothing shows up on your phone and it
+          looks broken when it isn't.
+        </p>
+        <ol style="margin:0 0 14px 18px; padding:0; font-size:0.9rem;">
+          <li>Install the free <strong>ntfy</strong> app: <a href="https://ntfy.sh" target="_blank" rel="noopener">ntfy.sh</a> for iOS/Android (or web at ntfy.sh).</li>
+          <li>Click "Generate a topic name" below (or make up your own private, hard-to-guess one).</li>
+          <li>In the ntfy app, tap <strong>+ Subscribe to topic</strong> and enter that exact same topic name.</li>
+          <li>Come back here, check <strong>Enabled</strong>, and click <strong>Save</strong>.</li>
+          <li><strong>Then</strong> click <strong>Send Test</strong> - it should show up on your phone within a few seconds.</li>
+        </ol>
+        <label class="checkbox-label"><input type="checkbox" id="ntfy-enabled"> Enabled</label>
+        <label>Server <input type="text" id="ntfy-server" placeholder="https://ntfy.sh"></label>
+        <label>Topic
+          <input type="text" id="ntfy-topic" placeholder="e.g. rg-budget-8f2k1">
+        </label>
+        <button class="btn btn-small" id="btn-gen-topic" type="button">Generate a topic name</button>
+        <div class="modal-actions" style="justify-content:flex-start; gap:8px; margin-top:12px;">
+          <button class="btn btn-primary" id="btn-save-ntfy">Save</button>
+          <button class="btn" id="btn-test-ntfy">Send Test</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>💬 SMS via Carrier Email Gateway (free)</h3>
+        <p class="muted">
+          Every carrier secretly runs an email-to-text bridge: an email sent to
+          <code>yournumber@<em>carrier-domain</em></code> arrives on your phone as a text.
+          It's free but not officially supported, so delivery can be delayed or
+          occasionally filtered as spam.
+        </p>
+        <ol style="margin:0 0 14px 18px; padding:0; font-size:0.9rem;">
+          <li>Fill in the <strong>SMTP</strong> card below first (this is what actually sends the email) - a Gmail address with an <a href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener">app password</a> works well; your normal Gmail password won't work here.</li>
+          <li>Enter your phone number and pick your carrier below.</li>
+          <li>Check <strong>Enabled</strong>, click <strong>Save</strong>, then <strong>Send Test</strong>.</li>
+        </ol>
+        <label class="checkbox-label"><input type="checkbox" id="sms-gateway-enabled"> Enabled</label>
+        <label>Your Phone Number <input type="text" id="sms-gateway-phone" placeholder="5551234567"></label>
+        <label>Carrier
+          <select id="sms-gateway-carrier">
+            <option value="att">AT&amp;T</option>
+            <option value="verizon">Verizon</option>
+            <option value="tmobile">T-Mobile</option>
+            <option value="sprint">Sprint</option>
+            <option value="boost">Boost Mobile</option>
+            <option value="cricket">Cricket</option>
+            <option value="metropcs">Metro by T-Mobile</option>
+            <option value="uscellular">US Cellular</option>
+            <option value="googlefi">Google Fi</option>
+            <option value="mint">Mint Mobile</option>
+            <option value="visible">Visible</option>
+            <option value="straighttalk">Straight Talk</option>
+            <option value="republicwireless">Republic Wireless</option>
+            <option value="ting">Ting</option>
+            <option value="xfinitymobile">Xfinity Mobile</option>
+          </select>
+        </label>
+        <div class="modal-actions" style="justify-content:flex-start; gap:8px;">
+          <button class="btn btn-primary" id="btn-save-sms-gateway">Save</button>
+          <button class="btn" id="btn-test-sms-gateway">Send Test</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📨 SMTP (used for gateway SMS and/or email digest)</h3>
+        <p class="muted">
+          One-time setup shared by the two email-based options above/below. If using Gmail:
+          go to your <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Google App Passwords page</a>,
+          create one named "Budget App", and paste the 16-character password it gives you
+          here (not your normal Gmail password - Google blocks that for apps like this).
+        </p>
+        <label>SMTP Host <input type="text" id="smtp-host" placeholder="smtp.gmail.com"></label>
+        <label>SMTP Port <input type="text" id="smtp-port" placeholder="587"></label>
+        <label>SMTP Username / From <input type="text" id="smtp-user" placeholder="you@gmail.com"></label>
+        <label>SMTP Password / App Password <input type="text" id="smtp-pass"></label>
+        <button class="btn btn-primary" id="btn-save-smtp">Save</button>
+      </div>
+
+      <div class="card">
+        <h3>📧 Email Digest</h3>
+        <p class="muted">Sends the same digest to a regular email address. Uses the SMTP settings above.</p>
+        <label class="checkbox-label"><input type="checkbox" id="email-enabled"> Enabled</label>
+        <label>Send to <input type="text" id="email-to" placeholder="you@example.com"></label>
+        <div class="modal-actions" style="justify-content:flex-start; gap:8px;">
+          <button class="btn btn-primary" id="btn-save-email">Save</button>
+          <button class="btn" id="btn-test-email">Send Test</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>☎️ Twilio SMS (paid, most reliable)</h3>
+        <p class="muted">
+          Skip this unless the free options above are too unreliable for you. Requires a
+          <a href="https://www.twilio.com" target="_blank" rel="noopener">Twilio</a>
+          account (~$1/mo for a phone number plus a fraction of a cent per text). After
+          signing up, your Account SID and Auth Token are on the Twilio Console dashboard;
+          buy a phone number under Phone Numbers &gt; Buy a Number.
+        </p>
+        <label class="checkbox-label"><input type="checkbox" id="twilio-enabled"> Enabled</label>
+        <label>Account SID <input type="text" id="twilio-sid"></label>
+        <label>Auth Token <input type="text" id="twilio-token"></label>
+        <label>Twilio From Number <input type="text" id="twilio-from" placeholder="+15551234567"></label>
+        <label>Your Phone Number <input type="text" id="twilio-to" placeholder="+15559876543"></label>
+        <div class="modal-actions" style="justify-content:flex-start; gap:8px;">
+          <button class="btn btn-primary" id="btn-save-twilio">Save</button>
+          <button class="btn" id="btn-test-twilio">Send Test</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Recent Notification History</h3>
+        <div id="notify-history" class="list"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="tab-settings" class="tab-panel">
+      <div class="card">
+        <h3>Account Balance</h3>
+        <p class="muted">
+          The CSV export only covers ~90 days, so it can't tell us your true current balance.
+          Enter it manually (from your bank's site or app) each time you import, and the
+          calendar/dashboard will project forward from there using your bills.
+        </p>
+        <label>Current Balance ($)
+          <input type="number" step="0.01" id="setting-balance">
+        </label>
+        <label>As of Date
+          <input type="date" id="setting-balance-date">
+        </label>
+        <button class="btn btn-primary" id="btn-save-settings">Save</button>
+        <div id="settings-saved" class="banner banner-good hidden">Saved.</div>
+      </div>
+
+      <div class="card">
+        <h3>Calendar Export</h3>
+        <p class="muted">
+          Get your bill due dates into your phone's actual calendar app, recurring
+          automatically (monthly, biweekly, etc.) just like they do here.
+        </p>
+        <a class="btn btn-primary" id="btn-calendar-download" href="/api/calendar.ics" download>Download Calendar (.ics)</a>
+        <p class="muted" style="margin-top:14px;">
+          For due dates that keep updating on their own, subscribe to this URL instead of
+          downloading (Google Calendar: Other calendars &gt; From URL. Apple Calendar: File &gt;
+          New Calendar Subscription. Outlook: Add calendar &gt; From internet). Only works from
+          a device that can reach this PC - use <strong>start_budget_lan.bat</strong> if
+          subscribing from your phone.
+        </p>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" id="calendar-feed-url" readonly style="flex:1;">
+          <button class="btn" id="btn-copy-calendar-url" type="button">Copy</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Backup</h3>
+        <p class="muted">
+          Download everything (transactions, bills, settings, budgets) as a JSON file.
+          This file includes any SMTP/Twilio credentials you've entered in plaintext -
+          keep it private.
+        </p>
+        <a class="btn btn-primary" id="btn-export" href="/api/export" download>Download Backup</a>
+      </div>
+
+      <div class="card" style="border-color:var(--expense);">
+        <h3 style="color:var(--expense); margin-top:0;">⚠ Danger Zone</h3>
+        <p class="muted">
+          Permanently erases every transaction, bill, budget, debt, and setting -
+          everything. Use this if you're handing this app to someone else and
+          want them to start from a clean slate, or if you want to wipe sample/
+          demo data before using it yourself. <strong>Download a backup first</strong>
+          if there's any chance you'll want this data back - this cannot be undone.
+        </p>
+        <button class="btn" id="btn-clear-data" style="border-color:var(--expense); color:var(--expense);">Clear All Data</button>
+        <div id="clear-data-result" class="banner hidden"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Bill Modal -->
+<div id="bill-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3 id="bill-modal-title">Add Bill</h3>
+    <input type="hidden" id="bill-id">
+    <label>Name <input type="text" id="bill-name"></label>
+    <label>Amount ($) <input type="number" step="0.01" id="bill-amount"></label>
+    <label>Type
+      <select id="bill-type">
+        <option value="expense">Expense (bill)</option>
+        <option value="income">Income (paycheck)</option>
+      </select>
+    </label>
+    <label>Category <input type="text" id="bill-category" placeholder="e.g. Utilities"></label>
+    <label>Frequency
+      <select id="bill-frequency">
+        <option value="monthly">Monthly</option>
+        <option value="biweekly">Biweekly</option>
+        <option value="weekly">Weekly</option>
+        <option value="annual">Annual</option>
+        <option value="once">One-time</option>
+      </select>
+    </label>
+    <label>Next Due Date <input type="date" id="bill-next-due"></label>
+    <label class="checkbox-label"><input type="checkbox" id="bill-autopay"> Autopay</label>
+    <label>Pay Online URL <input type="text" id="bill-pay-url" placeholder="https://... (the biller's payment page)"></label>
+    <label>Payment Method <input type="text" id="bill-payment-method" placeholder="e.g. Autopay - Chase debit"></label>
+    <label>Logo (company website, just for the icon)
+      <input type="text" id="bill-logo-domain" placeholder="e.g. comcast.com - auto-filled when recognized">
+    </label>
+    <label>Notes <input type="text" id="bill-notes"></label>
+    <div class="modal-actions">
+      <button class="btn" id="bill-cancel">Cancel</button>
+      <button class="btn btn-primary" id="bill-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Day Detail Modal -->
+<div id="day-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3 id="day-modal-title">Day</h3>
+    <div id="day-modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn" id="day-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Debt Modal -->
+<div id="debt-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3 id="debt-modal-title">Add Debt</h3>
+    <input type="hidden" id="debt-id">
+    <label>Name <input type="text" id="debt-name" placeholder="e.g. Rocket Mortgage"></label>
+    <label>Current Balance ($) <input type="number" step="0.01" id="debt-balance"></label>
+    <label>Interest Rate (APR %) <input type="number" step="0.01" id="debt-apr" placeholder="e.g. 6.5"></label>
+    <label>Monthly Payment ($) <input type="number" step="0.01" id="debt-payment"></label>
+    <label>Notes <input type="text" id="debt-notes"></label>
+    <div class="modal-actions">
+      <button class="btn" id="debt-cancel">Cancel</button>
+      <button class="btn btn-primary" id="debt-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

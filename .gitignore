@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+*.exe
+*.zip
+
+# Your real data - never commit
+data/
+*.db
+Checking*.csv
+!sample_checking.csv

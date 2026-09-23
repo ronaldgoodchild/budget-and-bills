@@ -1,0 +1,9 @@
+services:
+  budget-bills:
+    build: .
+    container_name: budget-bills
+    ports:
+      - "127.0.0.1:5000:5000"   # localhost only - the app has no login
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
