@@ -4,6 +4,17 @@ A free, **local-first budgeting app** for your checking account. Import your ban
 
 > Built by a working IT technician for his own household. All the demo data in this repo is fictional.
 
+## Screenshots
+
+![Dashboard: safe-to-spend, 60-day forecast, bill alerts (fictional data)](docs/screenshots/dashboard.png)
+*Dashboard: safe-to-spend, 60-day forecast, bill alerts (fictional data)*
+
+![Calendar with projected balance per day](docs/screenshots/calendar.png)
+*Calendar with projected balance per day*
+
+![Detected recurring charges and tracked bills](docs/screenshots/bills.png)
+*Detected recurring charges and tracked bills*
+
 ## Features
 
 - **CSV import** with auto-categorisation (overridable per merchant) and duplicate-safe re-imports

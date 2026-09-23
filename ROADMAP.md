@@ -3,7 +3,7 @@
 Comment on (or open) an issue first so we don't duplicate work.
 
 ## Good first issues
-- [ ] Add screenshots (from the sample data) to the README
+- [x] Add screenshots (from the sample data) to the README
 - [ ] Split the 1,400-line `app.py` into Flask blueprints
 - [ ] Add unit tests for `rules.py` (categorisation) and `reconcile.py` (matching)
 - [ ] Support more bank CSV formats (a small "profile" per bank)
