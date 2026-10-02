@@ -1399,6 +1399,7 @@ async function loadSettings() {
   const s = await api("/api/settings");
   document.getElementById("setting-balance").value = s.current_balance || "";
   document.getElementById("setting-balance-date").value = s.current_balance_date || new Date().toISOString().slice(0, 10);
+  document.getElementById("reset-token-display").textContent = s.reset_token || "Not available";
 }
 
 function initSettings() {
@@ -1443,6 +1444,12 @@ function initSettings() {
     if (typed !== "RESET") {
       return;
     }
+    const token = prompt(
+      "Enter the Reset Token shown above to authorize this operation:"
+    );
+    if (!token || !token.trim()) {
+      return;
+    }
     const resultEl = document.getElementById("clear-data-result");
     resultEl.classList.remove("hidden", "banner-warn", "banner-good");
     resultEl.textContent = "Clearing...";
@@ -1450,7 +1457,7 @@ function initSettings() {
       await api("/api/reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirm: "RESET" }),
+        body: JSON.stringify({ confirm: "RESET", token: token.trim() }),
       });
       resultEl.classList.add("banner-good");
       resultEl.textContent = "All data cleared. Reloading...";
