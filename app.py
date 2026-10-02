@@ -9,6 +9,7 @@ import io
 import json
 import os
 import re
+import secrets
 import shutil
 import socket
 import sqlite3
@@ -85,6 +86,7 @@ def init_db():
     _add_column_if_missing(conn, "bills", "payment_method", "TEXT")
     _add_column_if_missing(conn, "bills", "logo_domain", "TEXT")
     _backfill_logo_domains(conn)
+    _ensure_reset_token(conn)
     conn.commit()
     conn.close()
 
@@ -102,6 +104,22 @@ def _backfill_logo_domains(conn):
         guess = rules.guess_logo_domain(row[1]) or (row[2] and rules.guess_logo_domain(row[2])) or ""
         if guess:
             conn.execute("UPDATE bills SET logo_domain = ? WHERE id = ?", (guess, row[0]))
+
+
+def _ensure_reset_token(conn):
+    """Generate and store a cryptographically secure reset token if one doesn't
+    exist. This token is required (in addition to the confirmation string) to
+    invoke the /api/reset endpoint, preventing unauthenticated LAN callers from
+    wiping application data. The token is displayed in Settings so legitimate
+    users can access it when needed."""
+    row = conn.execute("SELECT value FROM settings WHERE key = 'reset_token'").fetchone()
+    if not row:
+        # Generate a 32-character URL-safe token (192 bits of entropy)
+        token = secrets.token_urlsafe(24)
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES ('reset_token', ?)",
+            (token,)
+        )
 
 
 def get_setting(db, key, default=None):
@@ -1313,12 +1331,21 @@ def api_export():
 def api_reset_data():
     """Wipes every table - transactions, bills, budgets, debts, settings,
     everything. Irreversible (aside from restoring a Download Backup file by
-    hand). Requires an explicit confirmation string so it can't be triggered
-    by an accidental or stray request."""
+    hand). Requires an explicit confirmation string AND a valid reset token
+    to prevent unauthenticated callers from triggering this destructive
+    operation."""
     body = request.get_json(force=True, silent=True) or {}
     if body.get("confirm") != "RESET":
         return jsonify({"error": "confirmation required"}), 400
+    
     db = get_db()
+    stored_token = get_setting(db, "reset_token")
+    provided_token = body.get("token", "")
+    
+    # Use constant-time comparison to prevent timing attacks
+    if not stored_token or not secrets.compare_digest(stored_token, provided_token):
+        return jsonify({"error": "invalid reset token"}), 403
+    
     for t in ALL_DATA_TABLES:
         db.execute(f"DELETE FROM {t}")
     db.commit()
